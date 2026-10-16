@@ -1,0 +1,16 @@
+date: 2026-10-16T18:04:29+00:00
+os: Ubuntu 24.04.2 LTS
+kernel: 6.8.0-60-generic
+CPU(s):                               4
+Model name:                           Intel(R) Core(TM) i5-4460  CPU @ 3.20GHz
+Thread(s) per core:                   1
+Core(s) per socket:                   4
+CPU(s) scaling MHz:                   94%
+Mem:            15Gi       1.9Gi        11Gi        19Mi       2.1Gi        13Gi
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb2       457G   21G  413G   5% /
+vmx_count: 8
+crw-rw---- 1 root kvm 10, 232 Oct 16 17:54 /dev/kvm
+cgroup_fs: cgroup2fs
+Docker version 28.0.2, build 0442a73
+Python 3.12.3

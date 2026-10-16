@@ -1,0 +1,14 @@
+gather_data_sampling: Not affected
+itlb_multihit: KVM: Mitigation: VMX disabled
+l1tf: Mitigation: PTE Inversion; VMX: conditional cache flushes, SMT disabled
+mds: Mitigation: Clear CPU buffers; SMT disabled
+meltdown: Mitigation: PTI
+mmio_stale_data: Unknown: No mitigations
+reg_file_data_sampling: Not affected
+retbleed: Not affected
+spec_rstack_overflow: Not affected
+spec_store_bypass: Mitigation: Speculative Store Bypass disabled via prctl
+spectre_v1: Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+spectre_v2: Mitigation: Retpolines; IBPB: conditional; IBRS_FW; STIBP: disabled; RSB filling; PBRSB-eIBRS: Not affected; BHI: Not affected
+srbds: Mitigation: Microcode
+tsx_async_abort: Not affected
