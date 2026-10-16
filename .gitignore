@@ -1,0 +1,10 @@
+data/raw/*
+data/clean/*
+!data/raw/.gitkeep
+!data/clean/.gitkeep
+experiments/
+*.log
+__pycache__/
+.venv/
+bin/
+.DS_Store
