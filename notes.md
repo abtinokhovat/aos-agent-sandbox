@@ -27,3 +27,21 @@
 - All 500 Verified tasks attempted by all three. 40 selected with seed 20261016 (data/selection.json via scripts/select_tasks.py).
 - Images: swebench/sweb.eval.x86_64.<owner>_1776_<repo>-<n>; ~55 GB compressed for the 40 (scripts/image_sizes.py). sympy-22914 size lookup failed transiently.
 - Path differences to remap in replay: mini=/testbed, OpenHands=/workspace/<repo>__<ver>, SWE-agent=TBD.
+
+## Phase 3/4 pilot (django__django-11099, 1 rep, both runtimes, 3 agents) 2026-10-16
+- Harness: harness/parsers.py (trajectory -> steps.jsonl), harness/replay (Go: container lifecycle + per-step cgroup metrics),
+  harness/replay/editor.py (in-container str_replace_editor replacement), harness/categorize.py, scripts/run_matrix.py, scripts/export_csv.py.
+- Each step = one `docker exec ... bash -c`. cwd carried between steps only for OpenHands/SWE-agent (persistent shells); mini-swe-agent runs each command fresh.
+  Shell `export`s do not persist across steps (known limitation).
+- conda `testbed` env: captured once from a login shell and passed via `-e` (a per-step `bash -lc` cost ~110 ms CPU, swamping small steps).
+- Env set to match originals: PAGER=cat MANPAGER=cat LESS=-R PIP_PROGRESS_BAR=off TQDM_DISABLE=1; UTF-8 locale ON for openhands/sweagent, OFF for mini
+  (original mini run had no UTF-8 locale: a script printing non-ASCII exited 1; verified exit-code match only with locale off).
+- Fidelity: fidelity_ok = replay exit code == original exit code (known for mini and OpenHands shell steps only; SWE-agent records none -> blank).
+  Output hash match kept separately (out_match): differs legitimately when the original output was truncated by the scaffold or depends on CPU count
+  (e.g. Django runtests "up to 8 processes" vs 4).
+- Metrics notes: memory.peak is cumulative since container start (kernel 6.8 cannot reset it per step). io.stat read bytes are ~0 (page cache);
+  under gVisor io.stat reflects gofer/host I/O. Processes spawned = PID delta of a subshell before/after the step (-1 for the marker);
+  /proc/loadavg last-pid is empty under gVisor so it was not used.
+- docker cp does not reach a gVisor sandbox rootfs; files are installed via `docker exec -i ... cat >`.
+- Pilot timing (steps): mini runc 5.9s / runsc 8.9s; openhands 8.2 / 20.8; sweagent 11.5 / 26.5.
+- TODO: syscall counting pass (runc: bpftrace by cgroup; runsc: strace via runtimeArgs or runsc metrics), then full 40-task run.
