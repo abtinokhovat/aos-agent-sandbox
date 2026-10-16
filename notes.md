@@ -15,3 +15,8 @@
 - Ubuntu 24.04.2, kernel 6.8.0-60, i5-4460 4c, 15 GiB, 413 GB free, cgroup v2, KVM present. See env/machine_info.txt, env/mitigations.txt.
 - Docker 28.0.2 preinstalled (runc only). runsc and Go missing.
 - **BLOCKER: DNS broken.** IP works (ping 8.8.8.8 ok), but resolver upstreams (178.22.122.100, 185.51.200.2 global; 192.168.31.1 on wifi) return "server misbehaving". GitHub/HF/PyPI/Docker Hub unresolvable. Waiting on user decision: mirror/proxy/DNS change.
+
+## Phase 0/1 update (2026-10-16)
+- DNS fixed: removed global DNS= servers and set DNSSEC=no in /etc/systemd/resolved.conf (backup .bak on VM). GitHub/HF/PyPI/Docker Hub now reachable from VM.
+- storage.googleapis.com is 403 from the VM; official gVisor tarball (release-20261005.0) fetched on the Mac and scp'd. runc + runsc both run hello-world.
+- Docker preinstalled is docker-ce+containerd.io; do not apt install docker.io (conflicts).
