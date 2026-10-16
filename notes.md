@@ -45,3 +45,12 @@
 - docker cp does not reach a gVisor sandbox rootfs; files are installed via `docker exec -i ... cat >`.
 - Pilot timing (steps): mini runc 5.9s / runsc 8.9s; openhands 8.2 / 20.8; sweagent 11.5 / 26.5.
 - TODO: syscall counting pass (runc: bpftrace by cgroup; runsc: strace via runtimeArgs or runsc metrics), then full 40-task run.
+
+## Syscall tracing (2026-10-16)
+- Separate pass (scripts/trace_pass.py) so tracing never perturbs timing; counts attached to all reps of (task, agent, runtime) at export.
+- Step delimiting: replay -trace-marks creates /tmp/.aos_mark_s_N / _e_N inside the container.
+- runc: bpftrace raw_syscalls:sys_enter scoped to the container cgroup (harness/syscalls.bt). runsc: second Docker runtime `runsc-strace`
+  (runsc --strace --debug-log=/var/log/runsc-strace/) -> count strace entry lines between markers = syscalls as the Sentry sees them (guest app syscalls,
+  NOT the host syscalls gVisor itself issues). Boot logs are kept gzipped in data/raw/strace_logs/.
+- Validation (django-11099 mini): runc 256,658 vs runsc 257,280 total syscalls, per-step counts within ~1-5%.
+- Docker daemon.json now has runtimes runsc and runsc-strace (backup of the earlier file: /tmp/daemon.json.bak on VM, may be gone).

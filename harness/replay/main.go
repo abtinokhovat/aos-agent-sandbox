@@ -176,6 +176,8 @@ func main() {
 	stepTO := flag.Int("step-timeout", 300, "per-step timeout seconds")
 	editor := flag.String("editor", "harness/replay/editor.py", "editor.py path on host")
 	persist := flag.Bool("persist-cwd", false, "carry cwd between steps (persistent-shell agents); mini-swe-agent runs each command fresh")
+	label := flag.String("label", "", "runtime label recorded in output (default: -runtime)")
+	traceMarks := flag.Bool("trace-marks", false, "bracket each step with marker-file creations so an external tracer can delimit it (trace pass only)")
 	utf8 := flag.Bool("utf8", true, "set LANG/LC_ALL=C.UTF-8 (original mini-swe-agent runs had no UTF-8 locale; SWE-agent's did)")
 	flag.Parse()
 
@@ -196,7 +198,10 @@ func main() {
 		fatal(fmt.Errorf("%s exists; raw files are never overwritten", *outF))
 	}
 
-	run := Run{Task: *task, Agent: *agent, Runtime: *runtime, Rep: *rep, Warmup: *warm, Image: *image,
+	if *label == "" {
+		*label = *runtime
+	}
+	run := Run{Task: *task, Agent: *agent, Runtime: *label, Rep: *rep, Warmup: *warm, Image: *image,
 		StartedAt: time.Now().UTC().Format(time.RFC3339)}
 	ctx := context.Background()
 	name := fmt.Sprintf("aos_%s_%d", *runtime, os.Getpid())
@@ -272,12 +277,22 @@ func main() {
 		if st.Kind == "shell" {
 			r.Command = *st.Command
 			script := fmt.Sprintf("cd %q 2>/dev/null || true\n%s%s\n", cwd, prelude, *st.Command)
+			if *traceMarks {
+				// start mark first; end mark is the last thing the EXIT trap does
+				script = fmt.Sprintf(": >/tmp/.aos_mark_s_%d\ncd %q 2>/dev/null || true\n%s%s\n", st.Step, cwd,
+					strings.Replace(prelude, "printf '\\n__AOS_META__", fmt.Sprintf(": >/tmp/.aos_mark_e_%d; printf '\\n__AOS_META__", st.Step), 1), *st.Command)
+			}
 			args := append(append([]string{"exec"}, envArgs...), name, "bash", "-c", script)
 			raw, xerr = docker(sctx, nil, args...)
 		} else { // edit
 			req, _ := json.Marshal(st.Edit)
 			r.Command = "edit:" + fmt.Sprint(st.Edit["command"]) + " " + fmt.Sprint(st.Edit["path"])
-			raw, xerr = docker(sctx, req, "exec", "-i", name, "/opt/miniconda3/bin/python", "/tmp/aos_editor.py")
+			if *traceMarks {
+				sh := fmt.Sprintf(": >/tmp/.aos_mark_s_%d; /opt/miniconda3/bin/python /tmp/aos_editor.py; rc=$?; : >/tmp/.aos_mark_e_%d; exit $rc", st.Step, st.Step)
+				raw, xerr = docker(sctx, req, "exec", "-i", name, "sh", "-c", sh)
+			} else {
+				raw, xerr = docker(sctx, req, "exec", "-i", name, "/opt/miniconda3/bin/python", "/tmp/aos_editor.py")
+			}
 		}
 		r.LatencyMs = ms(time.Since(ts))
 		after := readCounters(cg)

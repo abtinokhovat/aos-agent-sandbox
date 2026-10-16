@@ -29,7 +29,8 @@ def main():
         if r.get("Warmup"):
             continue
         sysc = {}
-        sp = f.replace("/runs/", "/syscalls/")
+        # syscall counts come from one separate trace pass per (task, agent, runtime), applied to all reps
+        sp = os.path.join(ROOT, "data/raw/syscalls", r["Task"], f"{r['Agent']}.{r['Runtime']}.json")
         if os.path.exists(sp):
             sysc = {int(k): v for k, v in json.load(open(sp)).get("per_step_total", {}).items()}
         ex = [s for s in r["Steps"] if s["executed"]]

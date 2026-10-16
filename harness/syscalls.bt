@@ -1,0 +1,24 @@
+// Per-step syscall counts for processes in the container's cgroup, delimited by marker files that the
+// replay (-trace-marks) creates inside the container: /tmp/.aos_mark_s_<step> ... /tmp/.aos_mark_e_<step>.
+// The cgroup is learned from the start marker, so no container id is needed. Run as root.
+tracepoint:syscalls:sys_enter_openat
+/strncmp(str(args->filename), "/tmp/.aos_mark_s_", 17) == 0/
+{
+  @cg = cgroup;
+  clear(@c);
+}
+
+tracepoint:raw_syscalls:sys_enter
+/@cg != 0 && cgroup == @cg/
+{
+  @c[args->id] = count();
+}
+
+tracepoint:syscalls:sys_enter_openat
+/@cg != 0 && cgroup == @cg && strncmp(str(args->filename), "/tmp/.aos_mark_e_", 17) == 0/
+{
+  printf("END %s\n", str(args->filename));
+  print(@c);
+}
+
+END { clear(@cg); clear(@c); }
