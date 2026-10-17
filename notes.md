@@ -54,3 +54,10 @@
   NOT the host syscalls gVisor itself issues). Boot logs are kept gzipped in data/raw/strace_logs/.
 - Validation (django-11099 mini): runc 256,658 vs runsc 257,280 total syscalls, per-step counts within ~1-5%.
 - Docker daemon.json now has runtimes runsc and runsc-strace (backup of the earlier file: /tmp/daemon.json.bak on VM, may be gone).
+
+## Full run results (2026-10-16/17)
+- 40 tasks x 3 agents x 2 runtimes x 3 reps = 720 timed runs (+ discarded warm-ups); 47,028 step rows in `data/clean/steps.csv`, 720 rows in `runs.csv`. Raw data stays on the VM (`data/raw/`, not in git).
+- Failure log: `matplotlib__matplotlib-24177` image pull timed out once (Docker Hub auth timeout); retried and completed. The first runc trace attempts failed (no sudo askpass), 120 logged lines in `failures.log`; re-run succeeded, 120/120 runc and 120/120 runsc traces.
+- Syscall counts agree between runc (bpftrace) and runsc (strace) within ~0.1% for the median (task, agent) pair, with one exception class: tasks using numpy/BLAS thread pools (seaborn, matplotlib) show 15-20x more runc syscalls. Cause: `sched_yield` spin-waiting (e.g. seaborn-3069/mini step 55: 53.6M sched_yield on runc vs 2.6M on runsc; all other syscalls equal). A yield is slower under gVisor, so the spinner issues fewer in the same wall time. Treat `syscalls_total` for those tasks with this in mind (subtract sched_yield for a work-proportional count).
+- OpenHands on pytest-5787: 19 exit-code mismatches identical on both runtimes; the original image had pytest-xdist, ours does not (environment difference, not isolation).
+- fidelity_ok is blank for SWE-agent (no recorded exit codes). 'skipped' rows (think/submit) have no execution.
